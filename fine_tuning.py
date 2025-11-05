@@ -11,12 +11,8 @@ import soundfile as sf
 import torch as T
 from datasets import Dataset
 from peft import LoraConfig, get_peft_model
-from transformers import (
-    Seq2SeqTrainer,
-    Seq2SeqTrainingArguments,
-    WhisperForConditionalGeneration,
-    WhisperProcessor,
-)
+from transformers import (Seq2SeqTrainer, Seq2SeqTrainingArguments,
+                          WhisperForConditionalGeneration, WhisperProcessor)
 
 T.backends.cuda.matmul.fp32_precision = "tf32"
 LANG = "fa"
