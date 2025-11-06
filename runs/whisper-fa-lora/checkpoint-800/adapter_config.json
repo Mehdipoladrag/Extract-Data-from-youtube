@@ -27,10 +27,10 @@
   "target_modules": [
     "q_proj",
     "v_proj",
-    "fc1",
-    "out_proj",
     "fc2",
-    "k_proj"
+    "out_proj",
+    "k_proj",
+    "fc1"
   ],
   "target_parameters": null,
   "task_type": "SEQ_2_SEQ_LM",
