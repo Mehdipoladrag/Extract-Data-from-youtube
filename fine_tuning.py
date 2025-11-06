@@ -1,9 +1,7 @@
 import json
 import random
-import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-
 import evaluate
 import numpy as np
 import pysrt
@@ -13,6 +11,9 @@ from datasets import Dataset
 from peft import LoraConfig, get_peft_model
 from transformers import (Seq2SeqTrainer, Seq2SeqTrainingArguments,
                           WhisperForConditionalGeneration, WhisperProcessor)
+
+from normalization.srt import SRTPreprocessor
+from normalization.fa import FaNormalization
 
 T.backends.cuda.matmul.fp32_precision = "tf32"
 LANG = "fa"
@@ -29,18 +30,6 @@ np.random.seed(SEED)
 T.manual_seed(SEED)
 
 
-class SRTPreprocessor:
-    """SRT utilities: (1) convert SRT time to seconds, (2) normalize text (spaces, newlines)."""
-
-    @staticmethod
-    def srt_time_to_sec(t) -> float:
-        return t.hours * 3600 + t.minutes * 60 + t.seconds + t.milliseconds / 1000.0
-
-    @staticmethod
-    def clean_text(s: str) -> str:
-        s = s.replace("\u200c", " ").replace("‌", " ")
-        s = re.sub(r"\s+", " ", s).strip()
-        return s
 
 
 class LoadVoice:
@@ -274,24 +263,29 @@ class DataCollatorSpeechSeq2Seq:
 
 
 class ComputeMetrics:
-    """Compute CER during eval by decoding predictions/labels and normalizing pad tokens."""
-
+    """Compute CER & WER with Persian normalization (pad tokens handled)."""
     def __init__(self, processor):
         self.processor = processor
         self.cer_metric = evaluate.load("cer")
+        self.wer_metric = evaluate.load("wer")
+        self._norm = FaNormalization() 
 
     def __call__(self, pred):
         pred_ids = np.asarray(pred.predictions).astype(np.int64)
         label_ids = np.asarray(pred.label_ids).astype(np.int64)
+
         label_ids[label_ids == -100] = self.processor.tokenizer.pad_token_id
-        pred_str = self.processor.tokenizer.batch_decode(
-            pred_ids, skip_special_tokens=True
-        )
-        label_str = self.processor.tokenizer.batch_decode(
-            label_ids, skip_special_tokens=True
-        )
-        cer_score = self.cer_metric.compute(predictions=pred_str, references=label_str)
-        return {"cer": cer_score}
+
+        pred_str = self.processor.tokenizer.batch_decode(pred_ids, skip_special_tokens=True)
+        label_str = self.processor.tokenizer.batch_decode(label_ids, skip_special_tokens=True)
+
+        pred_norm  = [self._norm.for_metric(s) for s in pred_str]
+        label_norm = [self._norm.for_metric(s) for s in label_str]
+
+        cer_score = self.cer_metric.compute(predictions=pred_norm, references=label_norm)
+        wer_score = self.wer_metric.compute(predictions=pred_norm, references=label_norm)
+
+        return {"cer": cer_score, "wer": wer_score}
 
 
 class WhisperSafeTrainer(Seq2SeqTrainer):
