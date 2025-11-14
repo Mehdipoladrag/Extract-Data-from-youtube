@@ -25,12 +25,12 @@
   "rank_pattern": {},
   "revision": null,
   "target_modules": [
+    "fc1",
     "q_proj",
-    "v_proj",
     "fc2",
-    "out_proj",
     "k_proj",
-    "fc1"
+    "out_proj",
+    "v_proj"
   ],
   "target_parameters": null,
   "task_type": "SEQ_2_SEQ_LM",

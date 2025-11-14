@@ -33,6 +33,6 @@ class Download:
 
 
 video = Download(
-    "https://www.youtube.com/watch?v=Kzpb1PMDaoY"
+    "https://www.youtube.com/watch?v=QxuXTjaj3AE"
 )  # Your Random Url for Extract
 video.download()

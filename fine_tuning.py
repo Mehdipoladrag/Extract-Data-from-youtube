@@ -545,7 +545,44 @@ class WhisperFineTuningApp:
         )
         pipeline.run()
 
+    def transcribe_segment(self, audio_path: str, start_sec: float = 0.0, duration_sec: float = 60.0):
+        model, processor = ModelBuilderProcessor.build_model()
+        model.eval()
+        device = "cuda" if T.cuda.is_available() else "cpu"
+        model.to(device)
+
+        audio, sr = sf.read(audio_path, dtype="float32")
+        if audio.ndim == 2:
+            audio = audio.mean(axis=1)
+        if sr != 16000:
+            raise ValueError(f"Expected 16kHz audio, got {sr} for {audio_path}")
+
+        n = len(audio)
+        s = max(0, int(round(start_sec * sr)))
+        e = min(n, s + int(round(duration_sec * sr)))
+        if s >= n:
+            print("[warn] start beyond audio length"); return ""
+        audio = audio[s:e]
+
+        feats = processor.feature_extractor(audio, sampling_rate=sr, return_tensors="pt")["input_features"].to(device)
+        with T.inference_mode():
+            ids = model.generate(
+                input_features=feats,
+                language=LANG, task=TASK,
+                do_sample=False, num_beams=1, max_new_tokens=225
+            )
+        text = processor.tokenizer.batch_decode(ids, skip_special_tokens=True)[0]
+        print(f"\n--- TRANSCRIPT ({int(duration_sec)}s @ {int(start_sec)}s) ---\n{text}\n")
+        return text
+
 
 if __name__ == "__main__":
+    INFER_AUDIO = ""       
+    START_SEC   = 0.0      
+    DURATION_S  = 60.0      
+
     app = WhisperFineTuningApp()
-    app.run()
+    if INFER_AUDIO:
+        app.transcribe_segment(INFER_AUDIO, START_SEC, DURATION_S)
+    else:
+        app.run()
