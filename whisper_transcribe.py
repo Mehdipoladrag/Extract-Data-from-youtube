@@ -121,7 +121,7 @@ class WhisperTranscriber:
 if __name__ == "__main__":
     MODEL = "openai/whisper-small"
     LANG = "fa"
-    AUDIO = Path("audio/processed/اگر مغزت در مقابل انجام برنامه هات مقاومت می‌کنه، این برای شماست ! تحقیق دانشمندان_16k.wav")
+    AUDIO = Path("audio/processed/چطور کاریزماتیک باشیم؟ راز آدمای خاص!_16k.wav")
 
     app = WhisperTranscriber(model_name=MODEL, language=LANG)
 
