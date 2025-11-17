@@ -33,3 +33,19 @@ class ComputeMetrics:
         wer_score = self.wer_metric.compute(predictions=pred_norm, references=label_norm)
 
         return {"cer": cer_score, "wer": wer_score}
+    
+    def _compute_metrics_pair(self, hyp: str, ref: str):
+        """
+        CER / WER برای یک جفت جمله (hyp, ref)
+        با نرمال‌سازی فارسی مثل ComputeMetrics.
+        """
+        hyp_norm = self._norm.for_metric(hyp)
+        ref_norm = self._norm.for_metric(ref)
+
+        cer = self._cer_metric.compute(
+            predictions=[hyp_norm], references=[ref_norm]
+        )
+        wer = self._wer_metric.compute(
+            predictions=[hyp_norm], references=[ref_norm]
+        )
+        return cer, wer, hyp_norm, ref_norm
