@@ -1,16 +1,17 @@
 from pathlib import Path
-from pathlib import Path
 import sys
+
+ROOT = Path(__file__).resolve().parent
+sys.path.append(str(ROOT / "src"))  
+
 import soundfile as sf
 import torch as T
 import pysrt
 import evaluate
-from src.asr.normalization.fa import FaNormalization
+
+from asr.normalization.fa import FaNormalization
 from asr.model.builder import ModelBuilderProcessor
 from asr.configs.main_conf import LANG, TASK
-
-ROOT = Path(__file__).resolve().parent
-sys.path.append(str(ROOT / "src"))
 
 class WhisperTranscriber:
     
@@ -90,23 +91,9 @@ class WhisperTranscriber:
 
     # -------------------- Normalization helper -------------------- #
     def _norm_for_metric(self, s: str) -> str:
-        
         if self._norm is None:
-            return s
-
-        fn = getattr(self._norm, "for_metric", None)
-        if callable(fn):
-            return fn(s)
-
-        for name in ("normalize", "normalize_for_metric", "for_eval", "__call__"):
-            meth = getattr(self._norm, name, None)
-            if callable(meth):
-                try:
-                    return meth(s)
-                except Exception:
-                    pass
-
-        return s
+            return s or ""
+        return self._norm.for_metric(s)
 
     # -------------------- Metrics -------------------- #
     def _compute_metrics_pair(self, hyp: str, ref: str):
@@ -209,10 +196,10 @@ class WhisperTranscriber:
 
 if __name__ == "__main__":
     AUDIO = Path(
-        "audio/processed/test5_16k.wav"
+        "audio/processed/ژورنال نویسی： قوی‌ترین عادت برای رشد فردی_16k.wav"
     )
     SRT = Path(
-        "subtitle/test5.fa.srt"
+        "subtitle/ژورنال نویسی： قوی‌ترین عادت برای رشد فردی.fa.srt"
     )
 
     print("[DEBUG] AUDIO:", AUDIO)

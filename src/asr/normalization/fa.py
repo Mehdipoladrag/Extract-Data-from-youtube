@@ -80,3 +80,13 @@ class FaNormalization:
             out = self._re_space.sub(" ", out).strip()
 
         return out
+    def for_metric(self, s: Optional[str]) -> str:
+        return self.normalize(
+            s,
+            map_arabic_chars=True,
+            remove_diacritics=True,
+            unify_zwjn=True,
+            strip_punct=True,    
+            collapse_spaces=True,
+            strip_controls=True,
+        )

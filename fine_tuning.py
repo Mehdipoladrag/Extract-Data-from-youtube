@@ -3,6 +3,7 @@ import random
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import evaluate
+import sys
 import numpy as np
 import pysrt
 import soundfile as sf
@@ -12,13 +13,16 @@ from peft import LoraConfig, get_peft_model
 from transformers import (Seq2SeqTrainer, Seq2SeqTrainingArguments,
                           WhisperForConditionalGeneration, WhisperProcessor)
 
-from asr.configs.main_conf import LANG, TASK, MODEL_NAME, MANIFEST, AUDIO_DIR, SUB_DIR, STR_SUFFIX
-from asr.data.manifest_builder import ManifestBuilder
-from asr.data.audio_loader import LoadVoice
-from asr.model.builder import ModelBuilderProcessor
-from asr.model.collator import DataCollatorSpeechSeq2Seq
-from asr.model.metrics import ComputeMetrics
-from asr.pipeline.training import WhisperTrainingPipeline
+ROOT = Path(__file__).resolve().parent
+sys.path.append(str(ROOT / "src"))
+
+from src.asr.configs.main_conf import LANG, TASK, MODEL_NAME, MANIFEST, AUDIO_DIR, SUB_DIR, STR_SUFFIX
+from src.asr.data.manifest_builder import ManifestBuilder
+from src.asr.data.audio_loader import LoadVoice
+from src.asr.model.builder import ModelBuilderProcessor
+from src.asr.model.collator import DataCollatorSpeechSeq2Seq
+from src.asr.model.metrics import ComputeMetrics
+from src.asr.pipeline.training import WhisperTrainingPipeline
 
 
 class MapExampler:
