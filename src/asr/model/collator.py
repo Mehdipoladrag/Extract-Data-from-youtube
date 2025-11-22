@@ -3,10 +3,15 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import pysrt
 import torch as T
-from asr.configs.main_conf import LANG, TASK, MODEL_NAME, MANIFEST, AUDIO_DIR, SUB_DIR, STR_SUFFIX
-
-
-
+from asr.configs.main_conf import (
+    LANG,
+    TASK,
+    MODEL_NAME,
+    MANIFEST,
+    AUDIO_DIR,
+    SUB_DIR,
+    STR_SUFFIX,
+)
 
 
 class DataCollatorSpeechSeq2Seq:

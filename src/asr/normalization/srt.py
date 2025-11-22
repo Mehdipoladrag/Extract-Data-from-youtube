@@ -3,6 +3,7 @@ from .fa import FaNormalization
 
 FA_NORM_SOFT = FaNormalization(strip_punct=False)
 
+
 class SRTPreprocessor:
     """SRT utilities: (1) convert SRT time to seconds, (2) normalize text (spaces, newlines)."""
 
@@ -16,4 +17,3 @@ class SRTPreprocessor:
             return ""
         s = s.replace("\n", " ")
         return FA_NORM_SOFT.normalize(s)
-    

@@ -6,10 +6,13 @@ from typing import List
 import torch as T
 from datasets import Dataset
 from peft import LoraConfig, get_peft_model
-from transformers import (Seq2SeqTrainer, Seq2SeqTrainingArguments,
-                          WhisperForConditionalGeneration, WhisperProcessor)
+from transformers import (
+    Seq2SeqTrainer,
+    Seq2SeqTrainingArguments,
+    WhisperForConditionalGeneration,
+    WhisperProcessor,
+)
 from src.asr.model.trainer import WhisperSafeTrainer
-
 
 
 class WhisperTrainingPipeline:

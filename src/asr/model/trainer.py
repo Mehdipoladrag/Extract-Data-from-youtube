@@ -1,10 +1,22 @@
 import pysrt
 import torch as T
 from datasets import Dataset
-from transformers import (Seq2SeqTrainer, Seq2SeqTrainingArguments,
-                          WhisperForConditionalGeneration, WhisperProcessor)
+from transformers import (
+    Seq2SeqTrainer,
+    Seq2SeqTrainingArguments,
+    WhisperForConditionalGeneration,
+    WhisperProcessor,
+)
 
-from asr.configs.main_conf import LANG, TASK, MODEL_NAME, MANIFEST, AUDIO_DIR, SUB_DIR, STR_SUFFIX
+from asr.configs.main_conf import (
+    LANG,
+    TASK,
+    MODEL_NAME,
+    MANIFEST,
+    AUDIO_DIR,
+    SUB_DIR,
+    STR_SUFFIX,
+)
 
 
 class WhisperSafeTrainer(Seq2SeqTrainer):
@@ -67,4 +79,3 @@ class WhisperSafeTrainer(Seq2SeqTrainer):
             generated_tokens = generated_tokens.unsqueeze(0)
 
         return (loss, generated_tokens, labels if has_labels else None)
-

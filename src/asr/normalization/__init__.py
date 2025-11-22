@@ -1,2 +1,2 @@
-from . import fa 
+from . import fa
 from . import srt

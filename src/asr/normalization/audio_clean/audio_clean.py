@@ -10,7 +10,6 @@ import noisereduce as nr
 
 
 class NoiseReducer:
-   
 
     def __init__(
         self,
@@ -48,7 +47,7 @@ class NoiseReducer:
         return y_reduced.astype("float32"), sr
 
     def clean_file(self, in_path: Path, out_path: Path) -> Path:
-        
+
         audio, sr = self.load(in_path)
         clean, sr = self.clean_array(audio, sr)
 

@@ -5,3 +5,5 @@ ffmpeg.exe
 /audio2/
 /.venv/
 /audio_clean/
+/audio_outputs/
+/wav_outputs/

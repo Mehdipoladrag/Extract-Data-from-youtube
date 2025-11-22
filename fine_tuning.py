@@ -10,13 +10,25 @@ import soundfile as sf
 import torch as T
 from datasets import Dataset
 from peft import LoraConfig, get_peft_model
-from transformers import (Seq2SeqTrainer, Seq2SeqTrainingArguments,
-                          WhisperForConditionalGeneration, WhisperProcessor)
+from transformers import (
+    Seq2SeqTrainer,
+    Seq2SeqTrainingArguments,
+    WhisperForConditionalGeneration,
+    WhisperProcessor,
+)
 
 ROOT = Path(__file__).resolve().parent
 sys.path.append(str(ROOT / "src"))
 
-from src.asr.configs.main_conf import LANG, TASK, MODEL_NAME, MANIFEST, AUDIO_DIR, SUB_DIR, STR_SUFFIX
+from src.asr.configs.main_conf import (
+    LANG,
+    TASK,
+    MODEL_NAME,
+    MANIFEST,
+    AUDIO_DIR,
+    SUB_DIR,
+    STR_SUFFIX,
+)
 from src.asr.data.manifest_builder import ManifestBuilder
 from src.asr.data.audio_loader import LoadVoice
 from src.asr.model.builder import ModelBuilderProcessor
@@ -54,7 +66,7 @@ class WhisperFineTuningApp:
         mb.build_if_needed()
 
     def build_model_and_processor(self):
-        return ModelBuilderProcessor.build_model()
+        return ModelBuilderProcessor.build_model(mode="train")
 
     def map_example(self, rec, processor):
         return MapExampler(processor).mapping(rec)
@@ -71,7 +83,9 @@ class WhisperFineTuningApp:
         )
         pipeline.run()
 
-    def transcribe_segment(self, audio_path: str, start_sec: float = 0.0, duration_sec: float = 60.0):
+    def transcribe_segment(
+        self, audio_path: str, start_sec: float = 0.0, duration_sec: float = 60.0
+    ):
         model, processor = ModelBuilderProcessor.build_model()
         model.eval()
         device = "cuda" if T.cuda.is_available() else "cpu"
@@ -87,25 +101,33 @@ class WhisperFineTuningApp:
         s = max(0, int(round(start_sec * sr)))
         e = min(n, s + int(round(duration_sec * sr)))
         if s >= n:
-            print("[warn] start beyond audio length"); return ""
+            print("[warn] start beyond audio length")
+            return ""
         audio = audio[s:e]
 
-        feats = processor.feature_extractor(audio, sampling_rate=sr, return_tensors="pt")["input_features"].to(device)
+        feats = processor.feature_extractor(
+            audio, sampling_rate=sr, return_tensors="pt"
+        )["input_features"].to(device)
         with T.inference_mode():
             ids = model.generate(
                 input_features=feats,
-                language=LANG, task=TASK,
-                do_sample=False, num_beams=1, max_new_tokens=225
+                language=LANG,
+                task=TASK,
+                do_sample=False,
+                num_beams=1,
+                max_new_tokens=225,
             )
         text = processor.tokenizer.batch_decode(ids, skip_special_tokens=True)[0]
-        print(f"\n--- TRANSCRIPT ({int(duration_sec)}s @ {int(start_sec)}s) ---\n{text}\n")
+        print(
+            f"\n--- TRANSCRIPT ({int(duration_sec)}s @ {int(start_sec)}s) ---\n{text}\n"
+        )
         return text
 
 
 if __name__ == "__main__":
-    INFER_AUDIO = ""       
-    START_SEC   = 0.0      
-    DURATION_S  = 60.0      
+    INFER_AUDIO = ""
+    START_SEC = 0.0
+    DURATION_S = 60.0
 
     app = WhisperFineTuningApp()
     if INFER_AUDIO:
