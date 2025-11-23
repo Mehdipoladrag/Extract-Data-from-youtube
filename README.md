@@ -1,4 +1,4 @@
-# Whisper FA — Single‑File Inference & LoRA Fine‑Tuning
+# Whisper Small FA — Single‑File Inference & LoRA Fine‑Tuning
 
 [![OpenAI Whisper][whisper-badge]][whisper]
 [![Transformers][transformers-badge]][transformers]
@@ -8,13 +8,16 @@
 [![CUDA][cuda-badge]][cuda]
 [![Python][python-badge]][python]
 
-Lightweight, production‑minded scripts to **transcribe Persian (fa) audio with OpenAI Whisper** and to **fine‑tune Whisper via LoRA** on your own audio+subtitle pairs.
+Lightweight, production-minded scripts to **transcribe Persian (fa) audio with OpenAI Whisper** and to **fine-tune Whisper via LoRA** on your own audio+subtitle pairs.
 
 - 🔊 **Inference**: one class (`WhisperTranscriber`) with stable generation settings  
-- 🧠 **Training**: end‑to‑end LoRA pipeline (dataset prep → mapping → Trainer → save)  
+- 🧠 **Training**: end-to-end LoRA pipeline (dataset prep → mapping → Trainer → save)  
 - 🧩 **Data I/O**: simple JSONL manifest built from `.wav` + `.srt`  
 - 🇮🇷 **Default language**: Persian (`fa`) out of the box (overrideable)  
-- ⚡ **CUDA‑aware**: pins model once, moves tensors to device, enables TF32 where available  
+- ⚡ **CUDA-aware**: pins model once, moves tensors to device, enables TF32 where available  
+- 📝 **Training script**: `fine_tuning.py` performs LoRA fine-tuning on Persian audio  
+- 🎧 **Inference script**: `whisper_transcriber.py` runs stable single-file transcription  
+- ⚠️ **Important**: you *must install the correct PyTorch version* that matches your GPU & CUDA version (see: https://pytorch.org/get-started/locally/)
 
 ---
 
@@ -51,20 +54,62 @@ Lightweight, production‑minded scripts to **transcribe Persian (fa) audio with
 - **Trainer**: gradient checkpointing, TensorBoard, periodic eval/save  
 
 ---
+## Model Architecture Changes
 
+Compared to a vanilla Whisper fine-tuning setup, this repo introduces a more modular
+architecture under `src/asr/`, separating:
+
+- **feature extraction**
+- **normalization**
+- **tokenization**
+- **LoRA adapter injection**
+- **evaluation/report generation**
+
+This modular structure makes the pipeline more maintainable and easier to extend (e.g.,
+switching between base Whisper, LoRA-adapted Whisper, or future Persian-optimized checkpoints).
+
+---
+
+### Hardware Used
+
+The experiments in this repo were trained and evaluated on a single
+**NVIDIA GeForce RTX 5060 Ti 16GB** GPU.  
+Other GPUs with similar or higher VRAM should also work, but you may need
+to adjust `per_device_train_batch_size` and `generation_max_length` based on
+your hardware limits.
+
+---
 ## Repo Layout
 
-```
+```bash
 .
-├── README.md                  # this file
-├── requirements.txt           # pinned versions (CUDA 12.8 build of torch)
-├── whisper_transcribe.py      # WhisperTranscriber class (single-file inference)
-├── fine_tuning.py             # full LoRA training pipeline
-├── audio/
-│   └── processed/             # 16 kHz mono WAV files (e.g., *_16k.wav)
-├── subtitle/                  # SRT files (*.srt or *.fa.srt)
-└── runs/
-    └── whisper-fa-lora/       # training outputs (checkpoints, logs, final/)
+├── .venv/                      # optional virtualenv
+├── audio/                      # raw downloaded audio
+├── audio_outputs/              # helper outputs (optional)
+├── wav_outputs/                # intermediate WAV exports
+├── runs/                       # training & evaluation outputs (logs, txt comparisons, checkpoints)
+│   └── whisper-fa-lora/
+│       ├── checkpoints/
+│       └── final/
+├── src/
+│   └── asr/
+│       ├── configs/            # model & training configs
+│       ├── data/               # dataset & manifest utilities
+│       ├── eval/               # evaluation, metrics, report generation
+│       ├── model/              # ASR model wrappers (Whisper + LoRA heads)
+│       ├── normalization/      # text normalization, cleaning
+│       ├── pipeline/           # end-to-end ASR pipeline building blocks
+│       └── __init__.py
+├── subtitle/                   # subtitle files (.srt) aligned with audio
+├── downloader.py               # YouTube downloader / data extractor
+├── ffmpeg.exe                  # local ffmpeg binary (Windows)
+├── fine_tuning.py              # entrypoint for LoRA fine-tuning
+├── manifest.jsonl              # training manifest (audio + text segments)
+├── project.toml
+├── requirements.txt
+├── whisper_transcriber.py      # entrypoint for single-file inference
+├── www.youtube.com_cookies.txt # cookies used for downloading (if needed)
+└── README.md                   # this file
 ```
 
 > Make sure your script filenames are `whisper_transcribe.py` and `fine_tuning.py` to match the commands below.
@@ -103,7 +148,8 @@ If you hit CUDA/version issues, install a matching PyTorch from the official sit
 ### 3) Prepare data
 
 Place **16 kHz mono** WAV files in `audio/processed/` and matching SRT subtitles in `subtitle/`:
-
+This project uses ~5 hours of Persian speech from:
+https://huggingface.co/datasets/vhdm/persian-voice-v1
 - Audio naming example: `MyLecture_16k.wav`  
 - Subtitle naming (any of):  
   - `MyLecture.fa.srt`  
@@ -226,6 +272,45 @@ Outputs:
 
 ---
 
+## Dataset Conversion
+
+The audio from `vhdm/persian-voice-v1` is converted to:
+
+- **WAV (16kHz / mono / float32)**  
+- **SRT subtitles**, aligned automatically from the dataset transcripts
+
+These pairs (`wav + srt`) form the training manifest used for LoRA fine-tuning.
+
+
+---
+## Evaluation Outputs & Comparisons
+
+After training and evaluation, this project writes human-readable reports under `runs/`,
+typically as a single `.txt` file per experiment.
+
+Each report contains, for every evaluated sample:
+
+- ✅ **Reference text** (ground-truth subtitle)
+- 🔁 **Fine-tuned model output** (LoRA-adapted Whisper)
+- 🧱 **Base model output** (original Whisper checkpoint)
+
+This makes it easy to visually compare how much the fine-tuned model improves over the base model on the same audio.
+
+
+### We evaluate the models with:
+
+- **WER** (Word Error Rate)
+- **CER** (Character Error Rate)
+
+On the ~5 hours of in-domain data (derived from `vhdm/persian-voice-v1`), the **LoRA fine-tuned model**
+achieves the **best WER/CER**, clearly outperforming the base Whisper checkpoint.
+
+On **out-of-domain audio** (samples that are *not* part of the training set), the fine-tuned model
+still consistently performs **better than the base model**, showing that the adaptation improves
+both in-domain and generalization quality for Persian ASR.
+
+---
+
 ## Tips & Troubleshooting
 
 - **“Audio must be 16kHz”**: resample your file to 16 kHz mono.  
@@ -248,7 +333,7 @@ Outputs:
 
 ## License
 
-MIT — see `LICENSE` (included).
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 
 <!-- Reference links -->
 [whisper]: https://github.com/openai/whisper
@@ -258,6 +343,8 @@ MIT — see `LICENSE` (included).
 [pytorch]: https://pytorch.org/
 [cuda]: https://developer.nvidia.com/cuda-zone
 [python]: https://www.python.org/
+[Dataset]: https://huggingface.co/datasets/vhdm/persian-voice-v1
+ج
 
 [whisper-doc]: https://huggingface.co/docs/transformers/model_doc/whisper
 
